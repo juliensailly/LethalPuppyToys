@@ -33,6 +33,9 @@
       <HintPath>$(LC_REFERENCES)\Assembly-CSharp-firstpass.dll</HintPath>
       <Private>false</Private>
     </Reference>
+    <Reference Include="LethalLib">
+      <HintPath>..\Lethal_Battle\packages\LethalLib.dll</HintPath>
+    </Reference>
     <Reference Include="Unity.Netcode.Runtime">
       <HintPath>$(LC_REFERENCES)\Unity.Netcode.Runtime.dll</HintPath>
       <Private>false</Private>
