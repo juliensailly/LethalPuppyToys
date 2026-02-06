@@ -58,12 +58,20 @@ namespace LethalPuppyToys
 
         private void RegisterScrapItems(AssetBundle bundle)
         {
+            // Debug: List all assets in the bundle
+            Logger.LogInfo("=== Assets in bundle ===");
+            foreach (var assetName in bundle.GetAllAssetNames())
+            {
+                Logger.LogInfo($"Asset: {assetName}");
+            }
+            Logger.LogInfo("========================");
+            
             // Load the clicker item
-            Item clickerItem = bundle.LoadAsset<Item>("ClickerItem");
+            Item clickerItem = bundle.LoadAsset<Item>("assets/lethalpuppytoys/clickeritem.asset");
             if (clickerItem != null)
             {
-                // Load the click sound from the asset bundle
-                AudioClip clickSound = bundle.LoadAsset<AudioClip>("clicker-sound.mp3");
+                // Load the click sound from the asset bundle (use the full path from the bundle)
+                AudioClip clickSound = bundle.LoadAsset<AudioClip>("assets/lethalpuppytoys/clicker-sound.mp3");
                 
                 // Check if there's already a PhysicsProp or GrabbableObject component
                 var existingPhysicsProp = clickerItem.spawnPrefab.GetComponent<PhysicsProp>();
@@ -101,8 +109,19 @@ namespace LethalPuppyToys
                 // Initialize the clicker with the sound (configure in code)
                 if (clickSound != null)
                 {
+                    // IMPORTANT: Attach the AudioClip to the prefab's GameObject
+                    // so it persists when the object is instantiated
+                    var audioSourceOnPrefab = clickerItem.spawnPrefab.GetComponent<AudioSource>();
+                    if (audioSourceOnPrefab == null)
+                    {
+                        audioSourceOnPrefab = clickerItem.spawnPrefab.AddComponent<AudioSource>();
+                    }
+                    audioSourceOnPrefab.clip = clickSound;
+                    audioSourceOnPrefab.playOnAwake = false;
+                    audioSourceOnPrefab.spatialBlend = 1f; // 3D sound
+                    
                     clickerComponent.Initialize(clickSound, cooldown: 0.2f);
-                    Logger.LogInfo($"Click sound loaded: {clickSound.name}");
+                    Logger.LogInfo($"Click sound loaded and attached to prefab: {clickSound.name}");
                 }
                 else
                 {
@@ -111,6 +130,8 @@ namespace LethalPuppyToys
                 
                 NetworkPrefabs.RegisterNetworkPrefab(clickerItem.spawnPrefab);
                 LethalLib.Modules.Items.RegisterScrap(clickerItem, LethalPuppyToysConfig.ClickerItemRarity.Value, Levels.LevelTypes.All);
+
+                clickerComponent.grabbable = true;
                 
                 Logger.LogInfo($"Registered item: {clickerItem.itemName}");
             } else

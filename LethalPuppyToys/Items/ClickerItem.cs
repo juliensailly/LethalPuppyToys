@@ -14,6 +14,7 @@ namespace LethalPuppyToys.Items
 
         /// <summary>
         /// Initialize the clicker with a sound and optional cooldown.
+        /// This is called on the prefab, not on instances.
         /// </summary>
         public void Initialize(AudioClip sound, float cooldown = 0.2f)
         {
@@ -25,11 +26,22 @@ namespace LethalPuppyToys.Items
         public override void Start()
         {
             base.Start();
+            
+            // Get the AudioSource that should already be on the GameObject
             audioSource = GetComponent<AudioSource>();
             
             if (audioSource == null)
             {
+                Plugin.Logger.LogWarning("No AudioSource found on ClickerItem!");
                 audioSource = gameObject.AddComponent<AudioSource>();
+            }
+            
+            // If clickSound wasn't set via Initialize (because this is an instance),
+            // get it from the AudioSource.clip that was set on the prefab
+            if (clickSound == null && audioSource != null && audioSource.clip != null)
+            {
+                clickSound = audioSource.clip;
+                Plugin.Logger.LogInfo($"ClickerItem loaded sound from AudioSource: {clickSound.name}");
             }
             
             Plugin.Logger.LogInfo($"ClickerItem '{itemProperties.itemName}' started!");
@@ -59,7 +71,7 @@ namespace LethalPuppyToys.Items
                 Plugin.Logger.LogWarning("Click sound is not assigned!");
             }
         }
-
+        
         public override void DiscardItem()
         {
             base.DiscardItem();
