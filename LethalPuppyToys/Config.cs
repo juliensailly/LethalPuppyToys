@@ -9,7 +9,7 @@ namespace LethalPuppyToys
         
         // Example: Item spawn rates
         // Add more config entries as needed for your items
-        // public ConfigEntry<int> ExampleItemRarity { get; private set; }
+        public ConfigEntry<int> ClickerItemRarity { get; private set; }
 
         public Config(ConfigFile configFile)
         {
@@ -21,15 +21,12 @@ namespace LethalPuppyToys
                 "Enable debug logging for troubleshooting."
             );
 
-            // Example: Item spawn rates section
-            /*
-            ExampleItemRarity = configFile.Bind(
+            ClickerItemRarity = configFile.Bind(
                 "Spawn Rates",
-                "ExampleItemRarity",
+                "ClickerItemRarity",
                 10,
-                "Rarity of the Example Item (higher = more common)."
+                "Rarity of the Clicker Item (higher = more common)."
             );
-            */
         }
     }
 }

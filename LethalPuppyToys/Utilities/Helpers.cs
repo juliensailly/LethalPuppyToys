@@ -56,7 +56,7 @@ namespace LethalPuppyToys.Utilities
         /// </summary>
         public static void DebugLog(string message)
         {
-            if (Plugin.MyConfig.EnableDebugMode.Value)
+            if (Plugin.LethalPuppyToysConfig.EnableDebugMode.Value)
             {
                 Plugin.Logger.LogInfo($"[DEBUG] {message}");
             }
