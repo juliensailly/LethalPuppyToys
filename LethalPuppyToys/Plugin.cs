@@ -22,7 +22,7 @@ namespace LethalPuppyToys
         
         private readonly Harmony harmony = new Harmony(GUID);
 
-        private void Awake()
+        public void Awake()
         {
             Instance = this;
             Logger = base.Logger;
