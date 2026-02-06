@@ -4,16 +4,12 @@ namespace LethalPuppyToys
 {
     internal class Config
     {
-        // General Settings
         public ConfigEntry<bool> EnableDebugMode { get; private set; }
         
-        // Example: Item spawn rates
-        // Add more config entries as needed for your items
         public ConfigEntry<int> ClickerItemRarity { get; private set; }
 
         public Config(ConfigFile configFile)
         {
-            // General section
             EnableDebugMode = configFile.Bind(
                 "General",
                 "EnableDebugMode",
