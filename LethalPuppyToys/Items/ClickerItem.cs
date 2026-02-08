@@ -1,5 +1,7 @@
+using GameNetcodeStuff;
 using Unity.Netcode;
 using UnityEngine;
+using LethalPuppyToys.Utilities;
 
 namespace LethalPuppyToys.Items
 {
@@ -11,14 +13,14 @@ namespace LethalPuppyToys.Items
         private float clickCooldown = 0.2f;
         private float lastClickTime;
 
-        private AudioClip? clickSound;
+        private AudioClip[]? clickSounds;
 
         /// <summary>
-        /// Initialize the clicker with a sound and optional cooldown.
+        /// Initialize the clicker with sound variants and optional cooldown.
         /// </summary>
-        public void Initialize(AudioClip sound, float cooldown = 0.2f)
+        public void Initialize(AudioClip[] sounds, float cooldown = 0.2f)
         {
-            clickSound = sound;
+            clickSounds = sounds;
             clickCooldown = cooldown;
         }
 
@@ -37,16 +39,16 @@ namespace LethalPuppyToys.Items
                 }
             }
             
-            if (clickSound != null)
+            if (clickSounds != null && clickSounds.Length > 0)
             {
-                noiseSFX = new AudioClip[] { clickSound };
-                noiseSFXFar = new AudioClip[] { clickSound };
+                noiseSFX = clickSounds;
+                noiseSFXFar = clickSounds;
             }
             else if (noiseAudio.clip != null)
             {
-                clickSound = noiseAudio.clip;
-                noiseSFX = new AudioClip[] { clickSound };
-                noiseSFXFar = new AudioClip[] { clickSound };
+                clickSounds = new AudioClip[] { noiseAudio.clip };
+                noiseSFX = clickSounds;
+                noiseSFXFar = clickSounds;
                 Plugin.Logger.LogInfo("Using AudioSource clip as fallback for ClickerItem");
             }
             else
@@ -74,6 +76,11 @@ namespace LethalPuppyToys.Items
             {
                 lastClickTime = Time.time;
                 PlayClickSoundServerRpc();
+                
+                if (playerHeldBy != null)
+                {
+                    RequestPuppyTrainingServerRpc(playerHeldBy.playerClientId, transform.position);
+                }
             }
         }
 
@@ -87,6 +94,42 @@ namespace LethalPuppyToys.Items
         private void PlayClickSoundClientRpc()
         {
             base.ItemActivate(true, true);
+        }
+        
+        [ServerRpc(RequireOwnership = false)]
+        private void RequestPuppyTrainingServerRpc(ulong trainerId, Vector3 clickerPosition)
+        {
+            PuppyTrainingClientRpc(trainerId, clickerPosition);
+        }
+
+        [ClientRpc]
+        private void PuppyTrainingClientRpc(ulong trainerId, Vector3 clickerPosition)
+        {
+            PlayerControllerB localPlayer = Helpers.GetLocalPlayer();
+            if (localPlayer == null) return;
+            
+            if (localPlayer.playerClientId != trainerId)
+            {
+                float distance = Vector3.Distance(localPlayer.transform.position, clickerPosition);
+                if (distance <= 10f)
+                {
+                    Plugin.Logger.LogInfo($"Training local player (distance: {distance:F2}m)");
+                    
+                    Vector3 directionToClicker = clickerPosition - localPlayer.transform.position;
+                    
+                    if (directionToClicker != Vector3.zero)
+                    {
+                        Quaternion targetRotation = Quaternion.LookRotation(directionToClicker);
+                        localPlayer.transform.rotation = Quaternion.Slerp(
+                            localPlayer.transform.rotation, 
+                            targetRotation, 
+                            0.5f
+                        );
+                        
+                        Plugin.Logger.LogInfo($"Player rotated to face clicker at {clickerPosition}");
+                    }
+                }
+            }
         }
         
         public override void DiscardItem()

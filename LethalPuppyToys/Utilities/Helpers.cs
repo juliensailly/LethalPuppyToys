@@ -1,4 +1,6 @@
+using System.Collections.Generic;
 using GameNetcodeStuff;
+using LethalLib.Modules;
 using Unity.Netcode;
 using UnityEngine;
 
@@ -60,6 +62,25 @@ namespace LethalPuppyToys.Utilities
             {
                 Plugin.Logger.LogInfo($"[DEBUG] {message}");
             }
+        }
+
+        public static List<PlayerControllerB> GetAllPlayers()
+        {
+            return new List<PlayerControllerB>(StartOfRound.Instance.allPlayerScripts);
+        }
+
+        public static List<PlayerControllerB> GetAllPlayerInRangeOfPlayer(PlayerControllerB trainer, float range)
+        {
+            List<PlayerControllerB> puppies = new List<PlayerControllerB>();
+            foreach (PlayerControllerB player in GetAllPlayers())
+            {
+                if (player != trainer && Vector3.Distance(trainer.transform.position, player.transform.position) <= range)
+                {
+                    puppies.Add(player);
+                }
+            }
+
+            return puppies;
         }
     }
 }
