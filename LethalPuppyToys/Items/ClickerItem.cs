@@ -1,3 +1,4 @@
+using Unity.Netcode;
 using UnityEngine;
 
 namespace LethalPuppyToys.Items
@@ -5,12 +6,12 @@ namespace LethalPuppyToys.Items
     /// <summary>
     /// Clicker item that plays a sound when the left mouse button is clicked.
     /// </summary>
-    public class ClickerItem : PhysicsProp
+    public class ClickerItem : NoisemakerProp
     {
-        private AudioClip? clickSound;
         private float clickCooldown = 0.2f;
         private float lastClickTime;
-        private AudioSource? audioSource;
+
+        private AudioClip? clickSound;
 
         /// <summary>
         /// Initialize the clicker with a sound and optional cooldown.
@@ -25,41 +26,67 @@ namespace LethalPuppyToys.Items
         {
             base.Start();
             
-            audioSource = GetComponent<AudioSource>();
-            
-            if (audioSource == null)
+            if (noiseAudio == null)
             {
-                Plugin.Logger.LogWarning("No AudioSource found on ClickerItem!");
-                audioSource = gameObject.AddComponent<AudioSource>();
+                noiseAudio = GetComponent<AudioSource>();
+                
+                if (noiseAudio == null)
+                {
+                    Plugin.Logger.LogWarning("No AudioSource found on ClickerItem!");
+                    noiseAudio = gameObject.AddComponent<AudioSource>();
+                }
             }
             
-            if (clickSound == null && audioSource != null && audioSource.clip != null)
+            if (clickSound != null)
             {
-                clickSound = audioSource.clip;
+                noiseSFX = new AudioClip[] { clickSound };
+                noiseSFXFar = new AudioClip[] { clickSound };
             }
+            else if (noiseAudio.clip != null)
+            {
+                clickSound = noiseAudio.clip;
+                noiseSFX = new AudioClip[] { clickSound };
+                noiseSFXFar = new AudioClip[] { clickSound };
+                Plugin.Logger.LogInfo("Using AudioSource clip as fallback for ClickerItem");
+            }
+            else
+            {
+                Plugin.Logger.LogError("No audio clip found for ClickerItem!");
+            }
+            
+            
+            noiseRange = 60f;
+            minLoudness = 0.6f;
+            maxLoudness = 1f;
+            minPitch = 0.9f;
+            maxPitch = 1f;
+            
+            noiseAudio.spatialBlend = 1f;
+            noiseAudio.rolloffMode = AudioRolloffMode.Linear;
+            noiseAudio.maxDistance = 60f;
+            
+            Plugin.Logger.LogInfo($"ClickerItem initialized - noiseSFX count: {noiseSFX?.Length ?? 0}");
         }
 
         public override void ItemActivate(bool used, bool buttonDown = true)
         {
-            base.ItemActivate(used, buttonDown);
-            
             if (buttonDown && Time.time - lastClickTime >= clickCooldown)
             {
-                PlayClickSound();
                 lastClickTime = Time.time;
+                PlayClickSoundServerRpc();
             }
         }
 
-        private void PlayClickSound()
+        [ServerRpc(RequireOwnership = false)]
+        private void PlayClickSoundServerRpc()
         {
-            if (clickSound != null && audioSource != null)
-            {
-                audioSource.PlayOneShot(clickSound);
-            }
-            else if (clickSound == null)
-            {
-                Plugin.Logger.LogWarning("Click sound is not assigned!");
-            }
+            PlayClickSoundClientRpc();
+        }
+
+        [ClientRpc]
+        private void PlayClickSoundClientRpc()
+        {
+            base.ItemActivate(true, true);
         }
         
         public override void DiscardItem()
