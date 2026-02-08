@@ -1,3 +1,4 @@
+using System.Collections;
 using GameNetcodeStuff;
 using Unity.Netcode;
 using UnityEngine;
@@ -12,6 +13,7 @@ namespace LethalPuppyToys.Items
     {
         private float clickCooldown = 0.2f;
         private float lastClickTime;
+        private const float detectionDistance = 30f;
 
         private AudioClip[]? clickSounds;
 
@@ -57,15 +59,17 @@ namespace LethalPuppyToys.Items
             }
             
             
-            noiseRange = 60f;
-            minLoudness = 0.6f;
-            maxLoudness = 1f;
+            
+            noiseRange = 100f;
+            minLoudness = 1.5f;
+            maxLoudness = 2f;
             minPitch = 0.9f;
             maxPitch = 1f;
             
             noiseAudio.spatialBlend = 1f;
             noiseAudio.rolloffMode = AudioRolloffMode.Linear;
-            noiseAudio.maxDistance = 60f;
+            noiseAudio.maxDistance = 100f;
+            noiseAudio.volume = 1f;
             
             Plugin.Logger.LogInfo($"ClickerItem initialized - noiseSFX count: {noiseSFX?.Length ?? 0}");
         }
@@ -111,7 +115,7 @@ namespace LethalPuppyToys.Items
             if (localPlayer.playerClientId != trainerId)
             {
                 float distance = Vector3.Distance(localPlayer.transform.position, clickerPosition);
-                if (distance <= 10f)
+                if (distance <= detectionDistance)
                 {
                     Plugin.Logger.LogInfo($"Training local player (distance: {distance:F2}m)");
                     
@@ -120,16 +124,39 @@ namespace LethalPuppyToys.Items
                     if (directionToClicker != Vector3.zero)
                     {
                         Quaternion targetRotation = Quaternion.LookRotation(directionToClicker);
-                        localPlayer.transform.rotation = Quaternion.Slerp(
-                            localPlayer.transform.rotation, 
-                            targetRotation, 
-                            0.5f
-                        );
                         
-                        Plugin.Logger.LogInfo($"Player rotated to face clicker at {clickerPosition}");
+                        StartCoroutine(SmoothRotatePlayer(localPlayer, targetRotation));
+                        
+                        Plugin.Logger.LogInfo($"Started rotating player to face clicker at {clickerPosition}");
                     }
                 }
             }
+        }
+        
+        /// <summary>
+        /// Smoothly rotates a player to face the target rotation over time.
+        /// </summary>
+        private IEnumerator SmoothRotatePlayer(PlayerControllerB player, Quaternion targetRotation)
+        {
+            float rotationDuration = 0.3f;
+            float elapsedTime = 0f;
+            Quaternion startRotation = player.transform.rotation;
+            
+            while (elapsedTime < rotationDuration)
+            {
+                elapsedTime += Time.deltaTime;
+                float t = elapsedTime / rotationDuration;
+                
+                t = t * t * (3f - 2f * t);
+                
+                player.transform.rotation = Quaternion.Slerp(startRotation, targetRotation, t);
+                
+                yield return null;
+            }
+            
+            player.transform.rotation = targetRotation;
+            
+            Plugin.Logger.LogInfo("Player rotation animation complete");
         }
         
         public override void DiscardItem()
